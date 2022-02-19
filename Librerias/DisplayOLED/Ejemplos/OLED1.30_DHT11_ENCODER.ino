@@ -7,19 +7,18 @@
 #include <Wire.h>
 
 #define OLED_RESET 4
-#define ARRIBA 4
-#define ABAJO 5
+
 #define SELEC 6
 #define BACK 7
 
 Adafruit_SH1106 display(OLED_RESET );
-int arr;
-int aba;
+int A=3;//CLK
+int B=2;//DT
 int selec;
 int back;
 int color = 3;
 int i=0;
-int sensor =2;
+int sensor =4;
 DHT dht(sensor,DHT11);
 // 'Phoenix', 128x64px
 const unsigned char Logo [] PROGMEM = {
@@ -95,36 +94,29 @@ void setup() {
  Serial.begin(9600);
  dht.begin();
  display.begin(SH1106_SWITCHCAPVCC, 0x3C);
- pinMode(ARRIBA, INPUT);
- pinMode(ABAJO, INPUT);
- pinMode(SELEC, INPUT);
- pinMode(BACK, INPUT);
+ pinMode(A, INPUT);
+ pinMode(B , INPUT);
+ pinMode(SELEC, INPUT_PULLUP);
+ pinMode(BACK, INPUT_PULLUP);
  display.clearDisplay();
  display.drawBitmap(0,0,Logo,128,64,1);
  display.display();
  delay(3000);
+ attachInterrupt(digitalPinToInterrupt(A),encoder,LOW);
+ Serial.println("listo");
   }
   
 
 void loop() {
-  arr = digitalRead(ARRIBA);
-  aba = digitalRead(ABAJO);
+
   selec=digitalRead(SELEC);
   back=digitalRead(BACK);
- if(arr == HIGH){
-  Serial.println(color);
-  color++;
-  Serial.println(color);
-  delay(250);
- }
- if(aba == HIGH){
-  Serial.println(color);
-  color--;
-  Serial.println(color);
-  delay(250);
- }
- if(back == HIGH){
+
+ if(back == LOW){
   Serial.println("activo");
+ }
+ if(selec== LOW){
+  Serial.println("activo SELEC");
  }
 
 if (color == 3){
@@ -140,7 +132,7 @@ if (color == 3){
   display.display();
 
 selec=digitalRead(SELEC);
-if(selec==HIGH){
+if(selec==LOW){
    i=1;
    display.clearDisplay();
 }
@@ -157,7 +149,7 @@ if(selec==HIGH){
   display.clearDisplay();
 
   back=digitalRead(BACK);
-  if(back==HIGH){i=0;}}
+  if(back==LOW){i=0;}}
   
  
   }
@@ -177,7 +169,7 @@ if (color == 2){
   display.display();
 
   selec=digitalRead(SELEC);
-if(selec==HIGH){
+if(selec==LOW){
    i=1;
    display.clearDisplay();
 }
@@ -202,7 +194,7 @@ if(selec==HIGH){
     delay(100);
 
     back=digitalRead(BACK);
-    if(back==HIGH){i=0;}}
+    if(back==LOW){i=0;}}
   
  
   }
@@ -220,11 +212,21 @@ if (color == 1){
   display.println("Opcion C");
   display.display();
 }
-if (color < 1){
-  color= 3;
-}
-if(color > 3){
-  color = 1;
-}
+
  
  }
+
+void encoder() {
+  static unsigned long ultimaInterrupcion =0;
+  unsigned long tiempoInterrupcion = millis();
+  if (tiempoInterrupcion - ultimaInterrupcion > 5){
+  if(digitalRead(B) == HIGH){
+  color++;
+  }else{
+  color--;
+  }
+   color = min(3, max(1, color));
+
+   ultimaInterrupcion = tiempoInterrupcion;
+ }
+}
